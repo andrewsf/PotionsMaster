@@ -4,12 +4,8 @@ package com.thevortex.potionsmaster.render.util.xray;
 import com.thevortex.potionsmaster.PotionsMaster;
 import com.thevortex.potionsmaster.render.util.BlockStore;
 import com.thevortex.potionsmaster.render.util.WorldRegion;
-
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
 import net.minecraft.util.math.vector.Vector3i;
 
-import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -18,19 +14,19 @@ public class Controller {
 	// Radius +/- around the player to search. So 8 is 8 on left and right of player plus under the player. So 17x17 area.
 	private static final int[] distanceList = new int[]{8, 16, 32, 48, 64, 80, 128, 256};
 
-	public static ArrayList blackList = new ArrayList<Block>() {{
-		add(Blocks.AIR);
-		add(Blocks.BEDROCK);
-		add(Blocks.STONE);
-		add(Blocks.GRASS);
-		add(Blocks.DIRT);
-	}};
+//	public static List<Block> blackList = new ArrayList<>(Arrays.asList(
+//			Blocks.AIR,
+//			Blocks.BEDROCK,
+//			Blocks.STONE,
+//			Blocks.GRASS,
+//			Blocks.DIRT
+//	));
 
 	private static Vector3i lastPlayerPos = null;
 
 
 	// Thread management
-	private static Future task;
+	private static Future<?> task;
 	private static ExecutorService executor;
 	// Draw states
 	private static boolean drawOres = false; // Off by default
@@ -46,7 +42,7 @@ public class Controller {
 
 	public static void toggleDrawOres() {
 		if (!drawOres) {
-			Render.ores.clear();
+			Render.clearOres();
 			executor = Executors.newSingleThreadExecutor();
 			drawOres = true;
 			requestBlockFinder(true);

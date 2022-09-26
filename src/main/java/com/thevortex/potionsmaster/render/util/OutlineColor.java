@@ -1,13 +1,20 @@
 package com.thevortex.potionsmaster.render.util;
 
 public class OutlineColor {
-    private int r;
-    private int g;
-    private int b;
+    /**
+     * Range: 0–255
+     */
+    private final int r;
 
-    public OutlineColor(int[] color) {
-        this(color[0], color[1], color[2]);
-    }
+    /**
+     * Range: 0–255
+     */
+    private final int g;
+
+    /**
+     * Range: 0–255
+     */
+    private final int b;
 
     public OutlineColor(int r, int g, int b) {
         this.r = r;
@@ -25,9 +32,5 @@ public class OutlineColor {
 
     public int getBlue() {
         return this.b;
-    }
-
-    public int[] getColor() {
-        return new int[]{this.r, this.g, this.b};
     }
 }

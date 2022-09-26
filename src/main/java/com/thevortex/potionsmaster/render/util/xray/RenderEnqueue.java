@@ -11,6 +11,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.math.vector.Vector3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
@@ -51,13 +52,13 @@ public class RenderEnqueue implements Runnable {
 		if (dataWithUUID != null) { // it's a block we are monitoring
 
 			if (add) {
-				double alpha = Math.max(0, (Controller.getRadius() - PotionsMaster.proxy.getClientPlayer().distanceToSqr(pos.getX(), pos.getY(), pos.getZ())) / Controller.getRadius() * 255);
+				double dist = Math.sqrt(pos.distSqr(PotionsMaster.proxy.getClientPlayer().position(), true));
+				double alpha = Math.max(0.0, 1.0 - dist / Controller.getRadius());
 
 				// the block was added to the world, let's add it to the drawing buffer
-				Render.ores.add(new BlockInfo(pos, dataWithUUID.getBlockData().getColor().getColor(), alpha));
-
+				Render.addOre(pos, dataWithUUID.getBlockData().getColor(), alpha);
 			} else {
-				Render.ores.remove(new BlockInfo(pos, null, 0.0));
+				Render.removeOre(pos);
 			}
 		}
 	}
@@ -75,7 +76,7 @@ public class RenderEnqueue implements Runnable {
 	 */
 	private void blockFinder() {
 		if (Controller.getBlockStore().isStoreEmpty()) {
-			Render.ores.clear();
+			Render.clearOres();
 		}
 
 		final World world = PotionsMaster.proxy.getClientPlayer().level;
@@ -197,10 +198,16 @@ public class RenderEnqueue implements Runnable {
 									continue;
 
 								// Calculate distance from player to block. Fade out further away blocks
-								//double alpha = Math.max(0, ((Controller.getRadius() - PotionsMaster.proxy.getClientPlayer().getDistanceSq(x + i, y + j, z + k)) / Controller.getRadius() ) * 255);
-								double alpha = Math.max(0, Controller.getRadius() - PotionsMaster.proxy.getClientPlayer().distanceToSqr(x + i, y + j, z + k) / (Controller.getRadius() / 4));
+								Vector3i blockPos = new Vector3i(x + i, y + j, z + k);
+
+								double dist = Math.sqrt(PotionsMaster.proxy.getClientPlayer().distanceToSqr(
+										blockPos.getX() + 0.5,
+										blockPos.getY() + 0.5,
+										blockPos.getZ() + 0.5));
+								double alpha = Math.max(0.0, 1.0 - dist / Controller.getRadius());
+
 								// Push the block to the render queue
-								renderQueue.add(new BlockInfo(x + i, y + j, z + k, dataWithUUID.getBlockData().getColor().getColor(), alpha));
+								renderQueue.add(new BlockInfo(blockPos, dataWithUUID.getBlockData().getColor(), alpha));
 							}
 						}
 					}
@@ -211,7 +218,7 @@ public class RenderEnqueue implements Runnable {
 		Vector3d playerPosition = player.position();
 		renderQueue.sort((t, t1) -> Double.compare(t1.distSqr(playerPosition, true), t.distSqr(playerPosition, true)));
 
-		Render.ores.clear();
-		Render.ores.addAll(renderQueue); // Add all our found blocks to the Render.ores list. To be use by Render when drawing.
+		// Add all our found blocks to the Render.ores list. To be use by Render when drawing.
+		Render.replaceOres(renderQueue);
 	}
 }

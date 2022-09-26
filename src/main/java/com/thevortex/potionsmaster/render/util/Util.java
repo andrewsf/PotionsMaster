@@ -4,14 +4,15 @@ import net.minecraft.client.renderer.BufferBuilder;
 
 public class Util {
 
-
-    public static void renderBlock(BufferBuilder buffer, BlockInfo blockinfo, int opacity) {
+    public static void renderBlock(BufferBuilder buffer, BlockInfo blockinfo) {
         if (blockinfo == null)
             return;
         final float size = 1.0f;
-        float red = blockinfo.color[0] * 255;
-        float green = blockinfo.color[1] * 255;
-        float blue = blockinfo.color[2] * 255;
+
+        int red = blockinfo.color.getRed();
+        int green = blockinfo.color.getGreen();
+        int blue = blockinfo.color.getBlue();
+        int opacity = blockinfo.alpha;
 
         int x = blockinfo.getX();
         int y = blockinfo.getY();
