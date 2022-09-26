@@ -1,11 +1,16 @@
 package com.thevortex.potionsmaster.render.util.xray;
 
 
+import com.thevortex.potionsmaster.PotionsMaster;
+import com.thevortex.potionsmaster.reference.Ores;
+import com.thevortex.potionsmaster.render.util.BlockInfo;
+import com.thevortex.potionsmaster.render.util.BlockStore;
+import com.thevortex.potionsmaster.render.util.WorldRegion;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3i;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
@@ -13,12 +18,6 @@ import net.minecraft.world.chunk.ChunkSection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
-import com.thevortex.potionsmaster.reference.Ores;
-import com.thevortex.potionsmaster.PotionsMaster;
-import com.thevortex.potionsmaster.render.util.BlockInfo;
-import com.thevortex.potionsmaster.render.util.BlockStore;
-import com.thevortex.potionsmaster.render.util.WorldRegion;
 
 public class RenderEnqueue implements Runnable {
 	private final WorldRegion box;
@@ -85,18 +84,14 @@ public class RenderEnqueue implements Runnable {
 
 		final List<BlockInfo> renderQueue = new ArrayList<>();
 
-		int lowBoundX, highBoundX, lowBoundY, highBoundY, lowBoundZ, highBoundZ;
-
-		// Used for cleaning up the searching process
-		BlockState currentState;
-		ResourceLocation block;
-		BlockStore.BlockDataWithUUID dataWithUUID;
 		// Loop on chunks (x, z)
 		for (int chunkX = box.minChunkX; chunkX <= box.maxChunkX; chunkX++) {
 			// Pre-compute the extend bounds on X
 			int x = chunkX << 4; // lowest x coord of the chunk in block/world coordinates
-			lowBoundX = (x < box.minX) ? box.minX - x : 0; // lower bound for x within the extend
-			highBoundX = (x + 15 > box.maxX) ? box.maxX - x : 15;// and higher bound. Basically, we clamp it to fit the radius.
+			// lower bound for x within the extend
+			int lowBoundX = Math.max(0, box.minX - x);
+			// and higher bound. Basically, we clamp it to fit the radius.
+			int highBoundX = Math.min(15, box.maxX - x);
 
 			for (int chunkZ = box.minChunkZ; chunkZ <= box.maxChunkZ; chunkZ++) {
 				// Time to getStore the chunk (16x256x16) and split it into 16 vertical extends (16x16x16)
@@ -109,8 +104,8 @@ public class RenderEnqueue implements Runnable {
 
 				// Pre-compute the extend bounds on Z
 				int z = chunkZ << 4;
-				lowBoundZ = (z < box.minZ) ? box.minZ - z : 0;
-				highBoundZ = (z + 15 > box.maxZ) ? box.maxZ - z : 15;
+				int lowBoundZ = Math.max(0, box.minZ - z);
+				int highBoundZ = Math.min(15, box.maxZ - z);
 
 				// Loop on the extends around the player's layer (6 down, 2 up)
 				for (int curExtend = box.minChunkY; curExtend <= box.maxChunkY; curExtend++) {
@@ -120,96 +115,81 @@ public class RenderEnqueue implements Runnable {
 
 					// Pre-compute the extend bounds on Y
 					int y = curExtend << 4;
-					lowBoundY = (y < box.minY) ? box.minY - y : 0;
-					highBoundY = (y + 15 > box.maxY) ? box.maxY - y : 15;
+					int lowBoundY = Math.max(0, box.minY - y);
+					int highBoundY = Math.min(15, box.maxY - y);
 
 					// Now that we have an extend, let's check all its blocks
 					for (int i = lowBoundX; i <= highBoundX; i++) {
 						for (int j = lowBoundY; j <= highBoundY; j++) {
 							for (int k = lowBoundZ; k <= highBoundZ; k++) {
-                                currentState = ebs.getBlockState(i, j, k);
+								BlockState currentState = ebs.getBlockState(i, j, k);
 
-                                // Reject blacklisted blocks
-                                //if( Controller.blackList.contains(currentState.getBlock()) )
-                                //	continue;
-                                block = currentState.getBlock().getRegistryName();
-                                if (block == null)
-                                    continue;
+								// Reject blacklisted blocks
+								//if( Controller.blackList.contains(currentState.getBlock()) )
+								 //	continue;
 
-                                if ((currentState.getBlock().getTags().contains(Ores.DIAMOND)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_diamond"))) {
-                                    block = Ores.DIAMOND;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.LAPIS)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_lapis"))) {
-                                    block = Ores.LAPIS;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.ALUMINIUM)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_aluminum"))) {
-                                    block = Ores.ALUMINIUM;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.COPPER)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_copper"))) {
-                                    block = Ores.COPPER;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.TIN)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_tin"))) {
-                                    block = Ores.TIN;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.LEAD)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_lead"))) {
-                                    block = Ores.LEAD;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.SILVER)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_silver"))) {
-                                    block = Ores.SILVER;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.GOLD)) || (currentState.getBlock().getRegistryName().getPath().contains("nether_gold_ore"))) {
-                                    block = Ores.GOLD;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.URANIUM)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_uranium"))) {
-                                    block = Ores.URANIUM;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.NICKEL)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_nickel"))) {
-                                    block = Ores.NICKEL;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.IRON)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_iron"))) {
-                                    block = Ores.IRON;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.OSMIUM)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_osmium"))) {
-                                    block = Ores.OSMIUM;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.ZINC)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_zinc"))) {
-                                    block = Ores.ZINC;
-                                }
-                                if (currentState.getBlock().getTags().contains(Ores.EMERALD)) {
-                                    block = Ores.EMERALD;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.COAL)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_coal"))) {
-                                    block = Ores.COAL;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.REDSTONE)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_redstone"))) {
-                                    block = Ores.REDSTONE;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.QUARTZ)) || (currentState.getBlock().getRegistryName().getPath().contains("quartz"))) {
-                                    block = Ores.QUARTZ;
-                                }
-                                if (currentState.getBlock().getTags().contains(Ores.BISMUTH)) {
-                                    block = Ores.BISMUTH;
-                                }
-                                if (currentState.getBlock().getTags().contains(Ores.CRIMSONIRON)) {
-                                    block = Ores.CRIMSONIRON;
-                                }
-                                if ((currentState.getBlock().getTags().contains(Ores.PLATINUM)) || (currentState.getBlock().getRegistryName().getPath().contains("ore_other_platinum"))) {
-                                    block = Ores.PLATINUM;
-                                }
-                                if (currentState.getBlock().getTags().contains(Ores.NETHERITE)) {
-                                    block = Ores.NETHERITE;
-                                }
-                                if (currentState.getBlock().getTags().contains(Ores.ALLTHEMODIUM)) {
-                                    block = Ores.ALLTHEMODIUM;
-                                }
-                                if (currentState.getBlock().getTags().contains(Ores.VIBRANIUM)) {
-                                    block = Ores.VIBRANIUM;
-								}
-								if (currentState.getBlock().getTags().contains(Ores.UNOBTAINIUM)) {
+								ResourceLocation registryName = currentState.getBlock().getRegistryName();
+								if (registryName == null)
+									continue;
+
+								Set<ResourceLocation> tags = currentState.getBlock().getTags();
+								String registryPath = registryName.getPath();
+
+								final ResourceLocation block;
+								if (tags.contains(Ores.UNOBTAINIUM)) {
 									block = Ores.UNOBTAINIUM;
+								} else if (tags.contains(Ores.VIBRANIUM)) {
+									block = Ores.VIBRANIUM;
+								} else if (tags.contains(Ores.ALLTHEMODIUM)) {
+									block = Ores.ALLTHEMODIUM;
+								} else if (tags.contains(Ores.NETHERITE)) {
+									block = Ores.NETHERITE;
+								} else if (tags.contains(Ores.PLATINUM) || registryPath.contains("ore_other_platinum")) {
+									block = Ores.PLATINUM;
+								} else if (tags.contains(Ores.CRIMSONIRON)) {
+									block = Ores.CRIMSONIRON;
+								} else if (tags.contains(Ores.BISMUTH)) {
+									block = Ores.BISMUTH;
+								} else if (tags.contains(Ores.QUARTZ) || registryPath.contains("quartz")) {
+									block = Ores.QUARTZ;
+								} else if (tags.contains(Ores.REDSTONE) || registryPath.contains("ore_other_redstone")) {
+									block = Ores.REDSTONE;
+								} else if (tags.contains(Ores.COAL) || registryPath.contains("ore_other_coal")) {
+									block = Ores.COAL;
+								} else if (tags.contains(Ores.EMERALD)) {
+									block = Ores.EMERALD;
+								} else if (tags.contains(Ores.ZINC) || registryPath.contains("ore_other_zinc")) {
+									block = Ores.ZINC;
+								} else if (tags.contains(Ores.OSMIUM) || registryPath.contains("ore_other_osmium")) {
+									block = Ores.OSMIUM;
+								} else if (tags.contains(Ores.IRON) || registryPath.contains("ore_other_iron")) {
+									block = Ores.IRON;
+								} else if (tags.contains(Ores.NICKEL) || registryPath.contains("ore_other_nickel")) {
+									block = Ores.NICKEL;
+								} else if (tags.contains(Ores.URANIUM) || registryPath.contains("ore_other_uranium")) {
+									block = Ores.URANIUM;
+								} else if (tags.contains(Ores.GOLD) || registryPath.contains("nether_gold_ore")) {
+									block = Ores.GOLD;
+								} else if (tags.contains(Ores.SILVER) || registryPath.contains("ore_other_silver")) {
+									block = Ores.SILVER;
+								} else if (tags.contains(Ores.LEAD) || registryPath.contains("ore_other_lead")) {
+									block = Ores.LEAD;
+								} else if (tags.contains(Ores.TIN) || registryPath.contains("ore_other_tin")) {
+									block = Ores.TIN;
+								} else if (tags.contains(Ores.COPPER) || registryPath.contains("ore_other_copper")) {
+									block = Ores.COPPER;
+								} else if (tags.contains(Ores.ALUMINIUM) || registryPath.contains("ore_other_aluminum")) {
+									block = Ores.ALUMINIUM;
+								} else if (tags.contains(Ores.LAPIS) || registryPath.contains("ore_other_lapis")) {
+									block = Ores.LAPIS;
+								} else if (tags.contains(Ores.DIAMOND) || registryPath.contains("ore_other_diamond")) {
+									block = Ores.DIAMOND;
+								} else {
+									block = registryName;
 								}
 
-								dataWithUUID = Controller.getBlockStore().getStoreByReference(block.toString());
+								// Used for cleaning up the searching process
+								BlockStore.BlockDataWithUUID dataWithUUID = Controller.getBlockStore().getStoreByReference(block.toString());
 								if (dataWithUUID == null)
 									continue;
 
@@ -227,7 +207,9 @@ public class RenderEnqueue implements Runnable {
 				}
 			}
 		}
-		renderQueue.sort((t, t1) -> Double.compare(t1.distSqr(new Vector3i(player.getX(),player.getY(),player.getZ())), t.distSqr(new Vector3i(player.getX(),player.getY(),player.getZ()))));
+
+		Vector3d playerPosition = player.position();
+		renderQueue.sort((t, t1) -> Double.compare(t1.distSqr(playerPosition, true), t.distSqr(playerPosition, true)));
 
 		Render.ores.clear();
 		Render.ores.addAll(renderQueue); // Add all our found blocks to the Render.ores list. To be use by Render when drawing.
