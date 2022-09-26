@@ -5,18 +5,18 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import java.util.*;
-
-import com.thevortex.potionsmaster.render.util.BlockData;
-import com.thevortex.potionsmaster.render.util.SimpleBlockData;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
 
 public class BlockStore {
 
     // Default blocks
     public static final List<SimpleBlockData> DEFAULT_BLOCKS = new ArrayList<SimpleBlockData>();
 
-    private HashMap<UUID, BlockData> store = new HashMap<>();
-    private HashMap<String, UUID> storeReference = new HashMap<>();
+    private final HashMap<UUID, BlockData> store = new HashMap<>();
+    private final HashMap<String, UUID> storeReference = new HashMap<>();
 
     public static ArrayList<BlockData> getFromSimpleBlockList(List<SimpleBlockData> simpleList) {
         ArrayList<BlockData> blockData = new ArrayList<>();
@@ -30,7 +30,7 @@ public class BlockStore {
                 location = new ResourceLocation(e.getBlockName());
             } catch (Exception ignored) {
             }
-            ;
+
             if (location == null)
                 continue;
 
@@ -63,8 +63,8 @@ public class BlockStore {
         this.storeReference.put(data.getBlockName(), uniqueId);
     }
 
-    public HashMap<UUID, BlockData> getStore() {
-        return store;
+    public boolean isStoreEmpty() {
+        return storeReference.isEmpty() || store.isEmpty();
     }
 
     public void setStore(ArrayList<BlockData> store) {
@@ -101,8 +101,8 @@ public class BlockStore {
     }
 
     public static final class BlockDataWithUUID {
-        BlockData blockData;
-        UUID uuid;
+        private final BlockData blockData;
+        private final UUID uuid;
 
         public BlockDataWithUUID(BlockData blockData, UUID uuid) {
             this.blockData = blockData;

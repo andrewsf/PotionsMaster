@@ -11,13 +11,11 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
+import java.util.Set;
 
 import com.thevortex.potionsmaster.reference.Ores;
 import com.thevortex.potionsmaster.PotionsMaster;
-import com.thevortex.potionsmaster.render.util.BlockData;
 import com.thevortex.potionsmaster.render.util.BlockInfo;
 import com.thevortex.potionsmaster.render.util.BlockStore;
 import com.thevortex.potionsmaster.render.util.WorldRegion;
@@ -38,37 +36,38 @@ public class RenderEnqueue implements Runnable {
 	 * @param add   true if the block was added to world, false if it was removed
 	 */
 	public static void checkBlock(BlockPos pos, BlockState state, boolean add) {
-		if (!Controller.drawOres() || Controller.getBlockStore().getStore().isEmpty())
+		if (!Controller.drawOres())
+			return; // just pass
+
+		BlockStore blockStore = Controller.getBlockStore();
+
+		if (blockStore.isStoreEmpty())
 			return; // just pass
 
 		String defaultState = state.getBlock().defaultBlockState().toString();
 
-
 		// Let's see if the block to check is an ore we monitor
-		if (Controller.getBlockStore().getStore().containsKey(defaultState)) // it's a block we are monitoring
-		{
-			if (!add) {
+		BlockStore.BlockDataWithUUID dataWithUUID = blockStore.getStoreByReference(defaultState);
+
+		if (dataWithUUID != null) { // it's a block we are monitoring
+
+			if (add) {
+				double alpha = Math.max(0, (Controller.getRadius() - PotionsMaster.proxy.getClientPlayer().distanceToSqr(pos.getX(), pos.getY(), pos.getZ())) / Controller.getRadius() * 255);
+
+				// the block was added to the world, let's add it to the drawing buffer
+				Render.ores.add(new BlockInfo(pos, dataWithUUID.getBlockData().getColor().getColor(), alpha));
+
+			} else {
 				Render.ores.remove(new BlockInfo(pos, null, 0.0));
-				return;
 			}
-
-			BlockData data = null;
-			if (Controller.getBlockStore().getStore().containsKey(defaultState))
-				data = Controller.getBlockStore().getStore().get(defaultState);
-
-			if (data == null)
-				return;
-
-			double alpha = Math.max(0, ((Controller.getRadius() - PotionsMaster.proxy.getClientPlayer().distanceToSqr(pos.getX(), pos.getY(), pos.getZ())) / Controller.getRadius()) * 255);
-
-			// the block was added to the world, let's add it to the drawing buffer
-			Render.ores.add(new BlockInfo(pos, data.getColor().getColor(), alpha));
 		}
 	}
 
+	/**
+	 * Our thread code for finding ores near the player.
+	 */
 	@Override
-	public void run() // Our thread code for finding ores near the player.
-	{
+	public void run() {
 		blockFinder();
 	}
 
@@ -76,12 +75,8 @@ public class RenderEnqueue implements Runnable {
 	 * Use Controller.requestBlockFinder() to trigger a scan.
 	 */
 	private void blockFinder() {
-		HashMap<UUID, BlockData> blocks = Controller.getBlockStore().getStore();
-
-		if (blocks.isEmpty()) {
-			if (!Render.ores.isEmpty())
-				Render.ores.clear();
-
+		if (Controller.getBlockStore().isStoreEmpty()) {
+			Render.ores.clear();
 		}
 
 		final World world = PotionsMaster.proxy.getClientPlayer().level;
